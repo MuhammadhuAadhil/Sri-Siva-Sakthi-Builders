@@ -1,138 +1,205 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-scroll";
-import { Github, Linkedin, Mail, Menu, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import auth from "../../config/firebase";
+import { scroller } from "react-scroll";
+import { Menu, X } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "../../config/firebase";
+import logo from "../../assets/logo.png";
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [log, setLog] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged((user) => {
+    const scrollTarget = location.state?.scrollTo;
+
+    if (location.pathname === "/" && scrollTarget) {
+      setTimeout(() => {
+        scroller.scrollTo(scrollTarget, {
+          smooth: true,
+          duration: 500,
+          offset: 0,
+        });
+      }, 100);
+
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.pathname, location.state]);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       setLog(!!user);
     });
     return () => unsub();
   }, []);
 
-  function logout() {
+  const logout = () => {
     signOut(auth);
+    setMenuOpen(false);
     navigate("/login");
-  }
+  };
 
-  const activeClass =
-    "px-4 py-1.5 rounded-full border border-blue-600 text-blue-400 bg-blue-900/40";
-  const normalClass =
-    "text-gray-400 hover:text-white px-4 py-1.5 cursor-pointer";
+  const links = [
+    { id: "home", label: "Home" },
+    { id: "about", label: "About" },
+    { id: "services", label: "Services" },
+    { id: "projects", label: "Projects" },
+    { id: "testimonials", label: "Testimonials" },
+    { id: "contact", label: "Contact" },
+  ];
 
-  const links = ["home", "about", "experience", "projects", "skills", "contact"];
+  const goToSection = (sectionId) => {
+    setMenuOpen(false);
+
+    if (location.pathname !== "/") {
+      navigate("/", { state: { scrollTo: sectionId } });
+      return;
+    }
+
+    scroller.scrollTo(sectionId, {
+      smooth: true,
+      duration: 500,
+      offset: 0,
+    });
+  };
+
+  const goToLogin = () => {
+    setMenuOpen(false);
+    navigate("/login");
+  };
 
   return (
-    <div className="fixed top-0 left-0 w-full h-16 sm:h-20 px-6 md:px-10 flex items-center justify-between bg-black/80 backdrop-blur border-b border-white/10 z-50">
-
-      {/* Logo */}
-      <h1 className="text-xl sm:text-2xl font-semibold text-blue-500 cursor-pointer">
-        MA
-      </h1>
-
-      {/* Desktop Links */}
-      <ul className="hidden md:flex gap-2 text-sm font-medium">
-        {links.map((item) => (
-          <Link
-            key={item}
-            to={item}
-            smooth
-            duration={500}
-            offset={-80}
-            spy={true}
-            activeClass={activeClass}
-            className={normalClass}
-          >
-            {item.charAt(0).toUpperCase() + item.slice(1)}
-          </Link>
-        ))}
-      </ul>
-
-      {/* Right */}
-      <div className="flex items-center gap-3 sm:gap-5 text-gray-400">
-
-        {/* Social Icons */}
-        <a href="https://github.com" target="_blank" rel="noreferrer">
-          <Github className="w-5 h-5 hover:text-white transition" />
-        </a>
-        <a href="https://linkedin.com" target="_blank" rel="noreferrer">
-          <Linkedin className="w-5 h-5 hover:text-blue-400 transition" />
-        </a>
-        <a href="mailto:test@gmail.com">
-          <Mail className="w-5 h-5 hover:text-green-400 transition" />
-        </a>
-
-        {/* Auth Button (Desktop only) */}
-        {log ? (
+    <>
+      <nav className="fixed top-0 left-0 w-full z-[9999] bg-black backdrop-blur-lg border-b border-yellow-500/30">
+        <div className="max-w-7xl mx-auto px-4 md:px-10 h-16 flex items-center justify-between">
           <button
-            onClick={logout}
-            className="hidden md:block px-4 py-1.5 rounded-full border border-blue-500 hover:bg-blue-600 transition"
+            type="button"
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => goToSection("home")}
           >
-            Logout
+            <img src={logo} alt="logo" className="w-9 h-9 object-contain" />
+            <h1 className="text-yellow-400 text-sm md:text-lg font-bold text-left">
+              Sri Siva Sakthi Builders
+            </h1>
           </button>
-        ) : (
-          <button
-            onClick={() => navigate("/login")}
-            className="hidden md:block px-4 py-1.5 rounded-full border border-blue-500 hover:bg-blue-600 transition"
-          >
-            Login
-          </button>
-        )}
 
-        {/* Mobile Menu Button */}
-        <button
-          className="md:hidden"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? <X /> : <Menu />}
-        </button>
-      </div>
-
-      {/* Mobile Menu */}
-      {menuOpen && (
-        <div className="absolute top-16 left-0 w-full bg-black border-t border-white/10 md:hidden">
-          <ul className="flex flex-col items-center py-6 gap-4 text-gray-300">
+          <ul className="hidden md:flex items-center gap-8 text-sm text-gray-300">
             {links.map((item) => (
-              <Link
-                key={item}
-                to={item}
-                smooth
-                duration={500}
-                offset={-80}
-                onClick={() => setMenuOpen(false)}
-                className="hover:text-white"
-              >
-                {item.charAt(0).toUpperCase() + item.slice(1)}
-              </Link>
+              <li key={item.id} className="relative group">
+                <button
+                  type="button"
+                  onClick={() => goToSection(item.id)}
+                  className="cursor-pointer pb-2 hover:text-yellow-400 transition bg-transparent"
+                >
+                  {item.label}
+                </button>
+                <span className="absolute left-0 top-6 h-[2px] w-0 bg-yellow-400 group-hover:w-full transition-all duration-500"></span>
+              </li>
             ))}
+          </ul>
 
-            {/* Auth button mobile */}
+          <div className="hidden md:flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => goToSection("contact")}
+              className="px-5 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition"
+            >
+              Get a Quote
+            </button>
+
             {log ? (
               <button
+                type="button"
                 onClick={logout}
-                className="mt-4 px-4 py-2 border border-blue-500 rounded-full"
+                className="px-4 py-2 border border-yellow-500 text-yellow-400 rounded-lg hover:bg-yellow-500 hover:text-black transition"
               >
                 Logout
               </button>
             ) : (
               <button
-                onClick={() => navigate("/login")}
-                className="mt-4 px-4 py-2 border border-blue-500 rounded-full"
+                type="button"
+                onClick={goToLogin}
+                className="px-4 py-2 border border-yellow-500 text-yellow-400 rounded-lg hover:bg-yellow-500 hover:text-black transition"
               >
                 Login
               </button>
             )}
-          </ul>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="md:hidden text-yellow-400"
+            aria-label="Open menu"
+          >
+            <Menu size={28} />
+          </button>
         </div>
-      )}
-    </div>
+      </nav>
+
+      <div
+        className={`fixed top-0 right-0 h-full w-[75%] max-w-sm bg-black/95 backdrop-blur-lg z-[9999] transform transition-all duration-500 ${
+          menuOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex justify-between items-center p-5 border-b border-yellow-500">
+          <h2 className="text-yellow-400 font-bold">Menu</h2>
+          <button
+            type="button"
+            className="text-yellow-400"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            <X />
+          </button>
+        </div>
+
+        <ul className="flex flex-col gap-3 p-6">
+          {links.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={() => goToSection(item.id)}
+                className="w-full text-left px-4 py-3 rounded-lg text-gray-300 hover:bg-yellow-500/10 hover:text-yellow-400 transition-all duration-300"
+              >
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className="px-6 mt-4 flex flex-col gap-4">
+          <button
+            type="button"
+            onClick={() => goToSection("contact")}
+            className="block text-center py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition"
+          >
+            Get a Quote
+          </button>
+
+          {log ? (
+            <button
+              type="button"
+              onClick={logout}
+              className="border border-yellow-500 text-yellow-400 py-3 rounded-lg hover:bg-yellow-500 hover:text-black transition"
+            >
+              Logout
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={goToLogin}
+              className="border border-yellow-500 text-yellow-400 py-3 rounded-lg hover:bg-yellow-500 hover:text-black transition"
+            >
+              Login
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 

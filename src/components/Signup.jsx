@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import auth from "../config/firebase";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
+import { auth, googleProvider } from "../config/firebase";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 function Signup() {
   const navigate = useNavigate();
@@ -10,20 +14,10 @@ function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPass, setShowPass] = useState(false);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-
-    const unsub = auth.onAuthStateChanged((user) => {
-      if (user) navigate("/");
-    });
-
-    return () => unsub();
-  }, [navigate]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +31,11 @@ function Signup() {
     try {
       setLoading(true);
       await createUserWithEmailAndPassword(auth, email, password);
-      navigate("/");
+      await signOut(auth);
+      navigate("/login", {
+        replace: true,
+        state: { message: "Account created successfully. Please login to continue." },
+      });
     } catch (err) {
       setLoading(false);
 
@@ -51,124 +49,158 @@ function Signup() {
     }
   };
 
+  const handleGoogleSignup = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      await signInWithPopup(auth, googleProvider);
+      navigate("/", { replace: true });
+    } catch (err) {
+      setLoading(false);
+      setError("Google signup failed. Try again.");
+    }
+  };
+
   return (
-    <div className="relative min-h-screen flex justify-center items-center px-6 bg-black">
-      
-      {/* 🔙 Back Button */}
-      <button
-        onClick={() => navigate("/")}
-        className="absolute top-5 left-5 z-50 flex items-center gap-2 
-                   px-4 py-2 rounded-full 
-                   bg-black/70 backdrop-blur
-                   border border-white/20 
-                   text-white hover:text-blue-400 
-                   hover:border-blue-500 transition"
-      >
-        <ArrowLeft size={16} />
-        Back
-      </button>
+    <div className="min-h-screen bg-gray-100 px-4 pt-24 pb-10 flex flex-col items-center justify-center">
 
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md p-6 sm:p-10 rounded-2xl 
-                   bg-black border border-blue-900 
-                   shadow-[0_0_40px_rgba(30,64,175,0.25)]"
-      >
-        {/* Title */}
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-          Sign Up
-        </h2>
-        <div className="w-12 sm:w-16 h-1 bg-blue-500 mb-6 sm:mb-8"></div>
+      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl flex overflow-hidden">
+        <div className="w-full md:w-1/2 p-8 sm:p-10 md:p-14">
+          <h2 className="text-4xl font-bold mb-2 text-black">Register</h2>
 
-        {/* Email */}
-        <div className="mb-5">
-          <label className="block text-gray-400 mb-2 text-sm">
-            Email
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-lg
-                       bg-black text-white
-                       border border-blue-900
-                       focus:outline-none focus:border-blue-500
-                       focus:ring-2 focus:ring-blue-600/40"
-          />
-        </div>
-
-        {/* Password */}
-        <div className="mb-5 relative">
-          <label className="block text-gray-400 mb-2 text-sm">
-            Password
-          </label>
-
-          <input
-            type={showPass ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-lg
-                       bg-black text-white
-                       border border-blue-900
-                       focus:outline-none focus:border-blue-500
-                       focus:ring-2 focus:ring-blue-600/40"
-          />
-
-          <span
-            onClick={() => setShowPass(!showPass)}
-            className="absolute right-3 top-10 cursor-pointer text-gray-400"
-          >
-            {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-          </span>
-        </div>
-
-        {/* Confirm Password */}
-        <div className="mb-4 relative">
-          <label className="block text-gray-400 mb-2 text-sm">
-            Confirm Password
-          </label>
-
-          <input
-            type={showPass ? "text" : "password"}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            className="w-full px-4 py-3 rounded-lg
-                       bg-black text-white
-                       border border-blue-900
-                       focus:outline-none focus:border-blue-500
-                       focus:ring-2 focus:ring-blue-600/40"
-          />
-        </div>
-
-        {/* Error */}
-        {error && (
-          <p className="text-red-500 text-sm my-3 text-center">
-            {error}
+          <p className="text-gray-600 text-sm mb-8">
+            Create your account first, then login to continue.
           </p>
-        )}
 
-        {/* Login Redirect */}
-        <p
-          className="text-blue-400 text-sm cursor-pointer my-4 hover:underline text-center"
-          onClick={() => navigate("/login")}
-        >
-          Already have an account? Login here
-        </p>
+          <form onSubmit={handleSubmit}>
+            <div className="flex items-center border border-gray-300 rounded-lg mb-5 px-4 py-3 focus-within:ring-2 focus-within:ring-yellow-400">
+              <Mail className="text-yellow-600 mr-3" size={20} />
+              <input
+                type="email"
+                placeholder="Enter your email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full outline-none bg-transparent text-black placeholder-gray-400"
+              />
+            </div>
 
-        {/* Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full mt-4 py-3 rounded-lg font-semibold text-white
-                     bg-blue-600 hover:bg-blue-700
-                     transition-all duration-300 disabled:opacity-70"
-        >
-          {loading ? "Creating Account..." : "Register"}
-        </button>
-      </form>
+            <div className="flex items-center border border-gray-300 rounded-lg mb-5 px-4 py-3 focus-within:ring-2 focus-within:ring-yellow-400 relative">
+              <Lock className="text-yellow-600 mr-3" size={20} />
+
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full outline-none bg-transparent text-black placeholder-gray-400"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 cursor-pointer text-gray-600"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+
+            <div className="flex items-center border border-gray-300 rounded-lg mb-5 px-4 py-3 focus-within:ring-2 focus-within:ring-yellow-400 relative">
+              <Lock className="text-yellow-600 mr-3" size={20} />
+
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full outline-none bg-transparent text-black placeholder-gray-400"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 cursor-pointer text-gray-600"
+                aria-label={
+                  showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+                }
+              >
+                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+
+            {error && (
+              <p className="text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm mb-4">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-3 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg"
+            >
+              {loading ? "Creating account..." : "Register"}
+            </button>
+
+            <div className="flex items-center gap-3 my-5">
+              <div className="h-px flex-1 bg-gray-300"></div>
+              <span className="text-xs uppercase tracking-widest text-gray-500">
+                Or
+              </span>
+              <div className="h-px flex-1 bg-gray-300"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md active:scale-[0.98]"
+            >
+              {/* Google Logo */}
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="google"
+                className="w-5 h-5"
+              />
+
+              <span className="text-sm md:text-base">
+                {loading ? "Signing in..." : "Continue with Google"}
+              </span>
+            </button>
+
+            <p
+              onClick={() => navigate("/login")}
+              className="text-sm text-gray-700 mt-5 cursor-pointer hover:text-yellow-600"
+            >
+              Already have an account? Login
+            </p>
+          </form>
+        </div>
+
+        <div className="hidden md:block w-1/2 relative">
+          <img
+            src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c"
+            alt="luxury villa"
+            className="w-full h-full object-cover"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
+
+          <div className="absolute bottom-10 left-8 right-8 text-white">
+            <div className="bg-black/40 backdrop-blur-sm p-5 rounded-lg">
+              <p className="text-base font-medium">
+                Join us and start building your future with trust and quality.
+              </p>
+              <p className="mt-3 text-sm text-yellow-400 font-semibold">
+                Sri Siva Sakthi Builders
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
